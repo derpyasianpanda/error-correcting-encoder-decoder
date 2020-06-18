@@ -1,0 +1,247 @@
+Note: This was when I overcomplicated the double bit encoder lol
+
+import java.io.*;
+import java.util.Arrays;
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.print("Write a mode: ");
+        String mode = new Scanner(System.in).next();
+        Message msg;
+
+        switch (mode) {
+            case "encode":
+                msg = new Message("D:\\Documents\\Computer Science\\Error Correcting Encoder-Decoder\\Error Correcting Encoder-Decoder\\task\\send.txt");
+                System.out.println("\nsend.txt:");
+                System.out.println("text view: " + msg);
+                System.out.println("hex view: " + msg.getHexRepresentation());
+                System.out.println("bin view: " + msg.getBinaryRepresentation());
+
+                msg.encodeDoubleBits();
+                System.out.println("\nencoded.txt:");
+                System.out.println("expand: " + msg.getBinaryRepresentationNoParity());
+                System.out.println("parity: " + msg.getBinaryRepresentation());
+                System.out.println("hex view: " + msg.getHexRepresentation());
+                break;
+            case "send":
+                msg = new Message("D:\\Documents\\Computer Science\\Error Correcting Encoder-Decoder\\Error Correcting Encoder-Decoder\\task\\send.txt");
+                msg.encodeDoubleBits();
+                System.out.println("\nencoded.txt:");
+                System.out.println("hex view: " + msg.getHexRepresentation());
+                System.out.println("bin view: " + msg.getBinaryRepresentation());
+
+                msg.simulateErrors();
+                System.out.println("\nreceived.txt:");
+                System.out.println("bin view: " + msg.getBinaryRepresentation());
+                System.out.println("hex view: " + msg.getHexRepresentation());
+                break;
+            case "decode":
+                msg = new Message("D:\\Documents\\Computer Science\\Error Correcting Encoder-Decoder\\Error Correcting Encoder-Decoder\\task\\send.txt");
+                msg.encodeDoubleBits();
+                msg.simulateErrors();
+                System.out.println("\nreceived.txt:");
+                System.out.println("hex view: " + msg.getHexRepresentation());
+                System.out.println("bin view: " + msg.getBinaryRepresentation());
+
+                msg.errorCorrectDoubleBits();
+                System.out.println("\ndecoded.txt:");
+                System.out.println("correct: " + msg.getBinaryRepresentation());
+
+                msg.decodeDoubleBits();
+                System.out.println("decoded: " + msg.getBinaryRepresentation());
+                System.out.println("hex view: " + msg.getHexRepresentation());
+                System.out.println("text view: " + msg);
+                break;
+            case "default":
+                System.out.println("\nThis option doesn't exist");
+                break;
+        }
+    }
+}
+
+class Message {
+    public static int MAX_BIT_INDEX = 7;
+    public static int BITS_IN_BYTE = 8;
+
+    private byte[] currentState;
+    private byte[] originalMessage;
+
+    public Message(String fileName) {
+        try (InputStream inputStream = new FileInputStream(fileName)) {
+            originalMessage = inputStream.readAllBytes();
+            currentState = Arrays.copyOf(originalMessage, originalMessage.length);
+        } catch (FileNotFoundException exception) {
+            System.out.println("File wasn't found :(");
+        } catch (IOException exception) {
+            System.out.println(exception.getMessage());
+        }
+    }
+
+    public void encodeDoubleBits() {
+        boolean hasLeftOverByte = originalMessage.length * 8 % 3 != 0;
+        byte[] encodedBytes = new byte[(int) Math.ceil(originalMessage.length * 8 / 3f)];
+        for (int i = 0; i < encodedBytes.length; i++) {
+            int cycle = i / 8;
+            int currentBitGroup = i % 8;
+            int idxByteStart = cycle * 3 + currentBitGroup / 3;
+
+            int idxBitFirst = currentBitGroup / 3 + currentBitGroup % 3 * 3;
+
+            int idxByteSecond = currentBitGroup == 5 ? idxByteStart + 1 : idxByteStart;
+            int idxBitSecond = currentBitGroup == 5 ? 0 : idxBitFirst + 1;
+
+            int idxByteThird = currentBitGroup == 2 || currentBitGroup == 5 ?
+                    idxByteStart + 1 : idxByteStart;
+            int idxBitThird = currentBitGroup == 2 || currentBitGroup == 5 ?
+                    currentBitGroup / 3 : idxBitFirst + 2;
+
+            int firstBit = getBit(currentState[idxByteStart], idxBitFirst);
+            int secondBit = 0;
+            int thirdBit = 0;
+
+            if (i == encodedBytes.length - 1 && hasLeftOverByte) {
+                if (currentBitGroup == 2) {
+                    secondBit = getBit(currentState[idxByteSecond], idxBitSecond);
+                }
+            } else {
+                secondBit = getBit(currentState[idxByteSecond], idxBitSecond);
+                thirdBit = getBit(currentState[idxByteThird], idxBitThird);
+            }
+
+            int parityBit = firstBit ^ secondBit ^ thirdBit;
+            encodedBytes[i] = createByte(new int[]{firstBit, firstBit, secondBit, secondBit,
+                    thirdBit, thirdBit, parityBit, parityBit});
+        }
+        currentState = encodedBytes;
+
+        try (OutputStream outputStream = new FileOutputStream("./encoded.txt")) {
+            outputStream.write(currentState);
+        } catch (IOException exception) {
+            System.out.println("File could not be written to :(");
+        }
+    }
+
+    public void errorCorrectDoubleBits() {
+        for(int i = 0; i < currentState.length; i++) {
+            int errorIndex = -1;
+            int correctBit = 0;
+            for (int j = 0; j < 6; j += 2) {
+                 if ((getBit(currentState[i], j) ^
+                         getBit(currentState[i], j + 1)) == 1) {
+                     errorIndex = j / 2;
+                 } else {
+                     correctBit += getBit(currentState[i], j);
+                 }
+            }
+            if (errorIndex != -1) {
+                int parityBit = getBit(currentState[i], MAX_BIT_INDEX);
+                correctBit = (correctBit % 2) ^ parityBit;
+                currentState[i] = changeBit(currentState[i], correctBit,
+                        errorIndex * 2);
+                currentState[i] = changeBit(currentState[i], correctBit,
+                        (errorIndex * 2 + 1));
+            } else {
+                int parityBit = correctBit % 2;
+                currentState[i] = changeBit(currentState[i], parityBit,
+                        MAX_BIT_INDEX - 1);
+                currentState[i] = changeBit(currentState[i], parityBit, MAX_BIT_INDEX);
+            }
+        }
+    }
+
+    public void decodeDoubleBits() {
+        byte[] bits = new byte[(int) (currentState.length / 8f * 3)];
+        int currentByte = 0;
+        int[] curBits = new int[8];
+        int curBitIdx = 0;
+        for (byte b : currentState) {
+            for (int j = 0; j < 6; j += 2) {
+                curBits[curBitIdx++] = getBit(b, j);
+                if (curBitIdx == 8) {
+                    bits[currentByte++] = createByte(curBits);
+                    curBitIdx = 0;
+                }
+            }
+        }
+        currentState = bits;
+        try (OutputStream outputStream = new FileOutputStream("./decoded.txt")) {
+            outputStream.write(currentState);
+        } catch (IOException exception) {
+            System.out.println("File could not be written to :(");
+        }
+    }
+
+    public void simulateErrors() {
+        for (int i = 0; i < currentState.length; i++) {
+            currentState[i] = flipBit(currentState[i], (int) (Math.random() * BITS_IN_BYTE));
+        }
+        try (OutputStream outputStream = new FileOutputStream("./received.txt")) {
+            outputStream.write(currentState);
+        } catch (IOException exception) {
+            System.out.println("File could not be written to :(");
+        }
+    }
+
+    public String toString() {
+        return new String(currentState);
+    }
+
+    public String getOriginalMessage() {
+        return new String(originalMessage);
+    }
+
+    public String getBinaryRepresentation() {
+        String[] result = new String[currentState.length];
+        for (int i = 0; i < currentState.length; i++) {
+            result[i] = String.
+                    format("%8s", Integer.toBinaryString(currentState[i] & 0xFF))
+                    .replace(' ', '0');
+        }
+        return String.join(" ", result);
+    }
+
+    public String getBinaryRepresentationNoParity() {
+        String[] result = new String[currentState.length];
+        for (int i = 0; i < currentState.length; i++) {
+            result[i] = String.
+                    format("%8s", Integer.toBinaryString(currentState[i] & 0xFF))
+                    .replace(' ', '0').substring(0, 6) + "..";
+        }
+        return String.join(" ", result);
+    }
+
+    public String getHexRepresentation() {
+        String[] result = new String[currentState.length];
+        for (int i = 0; i < currentState.length; i++) {
+            result[i] = String.format("%02x", currentState[i]).toUpperCase();
+        }
+        return String.join(" ", result);
+    }
+
+    public byte[] getOriginalBytes() {
+        return originalMessage;
+    }
+
+    public static int getBit(byte bits, int index) {
+        return bits >> (7 - index) & 1;
+    }
+
+    public static byte changeBit(byte bits, int state, int index) {
+        return (byte) (state == 1 ? bits | (1 << (MAX_BIT_INDEX - index)) :
+                bits & ~(1 << (MAX_BIT_INDEX - index)));
+    }
+
+    public static byte createByte(int[] states) {
+        byte result = 0;
+        for (int i = 0; i < 8; i++) {
+            result = (byte) (states[MAX_BIT_INDEX - i] == 1 ?
+                    result | (1 << i) : result & ~(1 << i));
+        }
+        return result;
+    }
+
+    public static byte flipBit(byte bits, int index) {
+        return (byte) (bits ^ (1 << (MAX_BIT_INDEX - index)));
+    }
+}
