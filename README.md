@@ -6,9 +6,9 @@ The program uses two Encoding/Decoding/Correcting techniques, Hamming Codes and 
 
 ## Instructions
 
-    - Ensure a "send.txt" message is in the root directory
-    - Compile/Build the Main.java (with Javac or your IDE)
-    - Run the Main class (with Java or your IDE)
-    - Run encode, send, and decode in that order
+- Ensure a "send.txt" message is in the root directory
+- Compile/Build the Main.java (with Javac or your IDE)
+- Run the Main class (with Java or your IDE)
+- Run encode, send, and decode in that order
 
 > Note: I will update this README when I have the time
