@@ -11,4 +11,4 @@ The program uses two Encoding/Decoding/Correcting techniques, Hamming Codes and 
 - Run the Main class (with Java or your IDE)
 - Run encode, send, and decode in that order
 
-> Note: I will update this README when I have the time
+> Note: I will update this README and comment the code soon™
