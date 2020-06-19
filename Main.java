@@ -1,12 +1,27 @@
 import java.io.*;
 import java.util.*;
 
+/**
+ * The Encoding/Decoding program implements an application that
+ * encodes messages, simulates/corrects errors, and decodes messages.
+ *
+ * @author  KV Le
+ * @version 1.0
+ * @since   6/15/2020
+ */
 public class Main {
+    /**
+     * Runs the Command Line Interface to guide the user through Encoding, Decoding, or
+     * Sending a theoretical message
+     * @param args - No use in this program
+     */
     public static void main(String[] args) {
+        System.out.print("Error Correcting Encoder/Decoder by KV Le");
         boolean formatting = true;
         String format = "";
         while (formatting) {
-            System.out.print("Choose a proper Encoding/Decoding format (H)amming, (D)ouble-Bit Encoding: ");
+            System.out.print("Please choose a proper Encoding/Decoding format " +
+                    "(H)amming, (D)ouble-Bit Encoding: ");
             format = new Scanner(System.in).nextLine().trim().toLowerCase();
             formatting = !("h".equals(format) || "d".equals(format));
         }
@@ -16,54 +31,59 @@ public class Main {
 
         while (running) {
             System.out.println("Program set to " +
-                    ("h".equals(format) ? "Hamming Code" : "Double-Bit") + " Encoding/Decoding");
-            System.out.print("Write a mode (Encode, Send, Decode): ");
+                    ("h".equals(format) ? "Hamming Code" : "Double-Bit") +
+                    " Encoding/Decoding");
+            System.out.print("Write a mode ((E)ncode, (S)end, (D)ecode)): ");
             String mode = new Scanner(System.in).next().toLowerCase();
             switch (mode) {
-                case "e":
-                case "encode":
+                case "e", "encode" -> {
                     encoderDecoder = new EncoderDecoder("./send.txt", format);
                     System.out.println("\nsend.txt:");
                     System.out.println("Text view: " + encoderDecoder);
-                    System.out.println("Hexadecimal view: " + encoderDecoder.getHexRepresentation());
-                    System.out.println("Binary view: " + encoderDecoder.getBinaryRepresentation());
-
+                    System.out.println("Hexadecimal view: " +
+                            encoderDecoder.getHexRepresentation());
+                    System.out.println("Binary view: " +
+                            encoderDecoder.getBinaryRepresentation());
                     encoderDecoder.encode();
                     System.out.println("\nencoded.txt:");
-                    System.out.println("Binary view: " + encoderDecoder.getBinaryRepresentation());
-                    System.out.println("Hexadecimal view: " + encoderDecoder.getHexRepresentation());
-                    break;
-                case "s":
-                case "send":
+                    System.out.println("Binary view: " +
+                            encoderDecoder.getBinaryRepresentation());
+                    System.out.println("Hexadecimal view: " +
+                            encoderDecoder.getHexRepresentation());
+                }
+                case "s", "send" -> {
                     encoderDecoder = new EncoderDecoder("./encoded.txt", format);
                     System.out.println("\nencoded.txt:");
-                    System.out.println("Hexadecimal view: " + encoderDecoder.getHexRepresentation());
-                    System.out.println("Binary view: " + encoderDecoder.getBinaryRepresentation());
-
+                    System.out.println("Hexadecimal view: " +
+                            encoderDecoder.getHexRepresentation());
+                    System.out.println("Binary view: " +
+                            encoderDecoder.getBinaryRepresentation());
                     encoderDecoder.simulateErrors();
                     System.out.println("\nreceived.txt:");
-                    System.out.println("Binary view: " + encoderDecoder.getBinaryRepresentation());
-                    System.out.println("Hexadecimal view: " + encoderDecoder.getHexRepresentation());
-                    break;
-                case "d":
-                case "decode":
+                    System.out.println("Binary view: " +
+                            encoderDecoder.getBinaryRepresentation());
+                    System.out.println("Hexadecimal view: " +
+                            encoderDecoder.getHexRepresentation());
+                }
+                case "d", "decode" -> {
                     encoderDecoder = new EncoderDecoder("./received.txt", format);
                     System.out.println("\nreceived.txt:");
-                    System.out.println("Hexadecimal view: " + encoderDecoder.getHexRepresentation());
-                    System.out.println("Binary view: " + encoderDecoder.getBinaryRepresentation());
-
+                    System.out.println("Hexadecimal view: " +
+                            encoderDecoder.getHexRepresentation());
+                    System.out.println("Binary view: " +
+                            encoderDecoder.getBinaryRepresentation());
                     encoderDecoder.errorCorrect();
                     System.out.println("\ndecoded.txt:");
-                    System.out.println("correct: " + encoderDecoder.getBinaryRepresentation());
-
+                    System.out.println("correct: " +
+                            encoderDecoder.getBinaryRepresentation());
                     encoderDecoder.decode();
-                    System.out.println("decoded: " + encoderDecoder.getBinaryRepresentation());
-                    System.out.println("Hexadecimal view: " + encoderDecoder.getHexRepresentation());
+                    System.out.println("decoded: " +
+                            encoderDecoder.getBinaryRepresentation());
+                    System.out.println("Hexadecimal view: " +
+                            encoderDecoder.getHexRepresentation());
                     System.out.println("Text view: " + encoderDecoder);
-                    break;
-                case "default":
-                    System.out.println("\nThis option doesn't exist");
-                    break;
+                }
+                case "default" -> System.out.println("\nThis option doesn't exist");
             }
             System.out.println();
             System.out.print("Would you like to end the program? (y/N): ");
@@ -74,15 +94,24 @@ public class Main {
     }
 }
 
+/**
+ * Object that can retrieve a file and perform Encoding, Decoding, or
+ * Error Correction/Simulation
+ */
 class EncoderDecoder {
-    public static int MAX_BIT_INDEX = 7;
-    public static int BITS_IN_BYTE = 8;
+    public static final int MAX_BIT_INDEX = 7;
+    public static final int BITS_IN_BYTE = 8;
 
+    private final String format;
     private byte[] currentState;
-    private String format;
 
-    public EncoderDecoder(String fileName, String format) {
-        try (InputStream inputStream = new FileInputStream(fileName)) {
+    /**
+     * Initializes a new EncoderDecoder Object with the proper Encoding/Decoding format
+     * @param filePath - The path to the desired file to be parsed
+     * @param format - The Encoding/Decoding Format (Hamming or Double-Bit)
+     */
+    public EncoderDecoder(String filePath, String format) {
+        try (InputStream inputStream = new FileInputStream(filePath)) {
             currentState = inputStream.readAllBytes();
         } catch (FileNotFoundException exception) {
             System.out.println("File wasn't found :(");
@@ -92,6 +121,10 @@ class EncoderDecoder {
         this.format = format;
     }
 
+    /**
+     * Encodes the current state of bytes to the format of the Encoder
+     * It then outputs the new state of bytes to "encoded.txt"
+     */
     public void encode() {
         if ("h".equals(format)) {
             encodeHamming();
@@ -105,6 +138,9 @@ class EncoderDecoder {
         }
     }
 
+    /**
+     * Error corrects the current state of bytes to the format of the Object
+     */
     public void errorCorrect() {
         if ("h".equals(format)) {
             errorCorrectHamming();
@@ -113,6 +149,10 @@ class EncoderDecoder {
         }
     }
 
+    /**
+     * Decodes the current state of bytes to the format of the Encoder.
+     * It then outputs the new state of bytes to "decoded.txt"
+     */
     public void decode() {
         if ("h".equals(format)) {
             decodeHamming();
@@ -126,6 +166,10 @@ class EncoderDecoder {
         }
     }
 
+    /**
+     * Encodes the current state with Hamming Codes ([7, 4] format specifically)
+     * Learn more about them at https://en.wikipedia.org/wiki/Hamming_code
+     */
     public void encodeHamming() {
         byte[] encodedBytes = new byte[currentState.length * 2];
         for (int i = 0; i < encodedBytes.length; i++) {
@@ -135,6 +179,7 @@ class EncoderDecoder {
                 int idxBit = (i % 2) * 4 + j;
                 infoBits[j] = getBit(currentState[idxOgByte], idxBit);
             }
+            // At indexes 0, 1, and 3 are the parity bits for Hamming Codes
             encodedBytes[i] = createByte(new int[]{
                     infoBits[0] ^ infoBits[1] ^ infoBits[3],
                     infoBits[0] ^ infoBits[2] ^ infoBits[3],
@@ -149,18 +194,31 @@ class EncoderDecoder {
         currentState = encodedBytes;
     }
 
+    /**
+     * Error Corrects the current state with Hamming Codes in mind
+     * Learn more about them at https://en.wikipedia.org/wiki/Hamming_code
+     */
     public void errorCorrectHamming() {
+        /*
+        You can find the error bit by combining the parity bits with their corresponding checks and
+        comparing with each parity group to find the index of an error and flip it.
+        Find out more here: https://www.youtube.com/watch?v=wbH2VxzmoZk
+         */
         for (int i = 0; i < currentState.length; i++) {
             currentState[i] = flipBit(currentState[i],
-                    ((getBit(currentState[i], 0) + getBit(currentState[i], 2) +
-                            getBit(currentState[i], 4) + getBit(currentState[i], 6)) % 2 +
-                            (getBit(currentState[i], 1) + getBit(currentState[i], 2) +
-                                    getBit(currentState[i], 5) + getBit(currentState[i], 6)) % 2 * 2 +
-                            (getBit(currentState[i], 3) + getBit(currentState[i], 4) +
-                                    getBit(currentState[i], 5) + getBit(currentState[i], 6)) % 2 * 4) - 1);
+                    ((getBit(currentState[i], 0) ^ getBit(currentState[i], 2) ^
+                            getBit(currentState[i], 4) ^ getBit(currentState[i], 6)) +
+                            (getBit(currentState[i], 1) ^ getBit(currentState[i], 2) ^
+                                    getBit(currentState[i], 5) ^ getBit(currentState[i], 6)) * 2 +
+                            (getBit(currentState[i], 3) ^ getBit(currentState[i], 4) ^
+                                    getBit(currentState[i], 5) ^ getBit(currentState[i], 6)) * 4) - 1);
         }
     }
 
+    /**
+     * Decodes the current state with Hamming Codes ([7, 4] format specifically)
+     * Learn more about them at https://en.wikipedia.org/wiki/Hamming_code
+     */
     public void decodeHamming() {
         byte[] decoded = new byte[currentState.length / 2];
         for (int i = 0; i < currentState.length; i += 2) {
@@ -176,6 +234,10 @@ class EncoderDecoder {
         currentState = decoded;
     }
 
+    /**
+     * Encodes the current state with Double-Bit Format
+     * More Information in the "DoubleBitEncodingGraphic.png" stored in this repo
+     */
     public void encodeDoubleBits() {
         byte[] encodedBytes = new byte[(int) Math.ceil(currentState.length * 8 / 3f)];
         for (int i = 0; i < encodedBytes.length; i++) {
@@ -196,6 +258,10 @@ class EncoderDecoder {
         currentState = encodedBytes;
     }
 
+    /**
+     * Error Corrects the current state with the Double-Bit Format in mind
+     * More Information in the "DoubleBitEncodingGraphic.png" stored in this repo
+     */
     public void errorCorrectDoubleBits() {
         for(int i = 0; i < currentState.length; i++) {
             int errorIndex = -1;
@@ -224,6 +290,10 @@ class EncoderDecoder {
         }
     }
 
+    /**
+     * Decodes the current state with Double-Bit Format
+     * More Information in the "DoubleBitEncodingGraphic.png" stored in this repo
+     */
     public void decodeDoubleBits() {
         byte[] decoded = new byte[(int) (currentState.length / 8f * 3)];
         int currentByte = 0;
@@ -241,6 +311,10 @@ class EncoderDecoder {
         currentState = decoded;
     }
 
+    /**
+     * Simulates errors within the current state of bytes.
+     * For every byte, a single bit will be randomly flipped.
+     */
     public void simulateErrors() {
         for (int i = 0; i < currentState.length; i++) {
             currentState[i] = flipBit(currentState[i], (int) (Math.random() * BITS_IN_BYTE));
@@ -252,10 +326,18 @@ class EncoderDecoder {
         }
     }
 
+    /**
+     * Retrieves the string representation of the message
+     * @return The current states bytes directly translated into a string of characters
+     */
     public String toString() {
         return new String(currentState);
     }
 
+    /**
+     * Retrieves the binary representation of the message (space split every 8 bits)
+     * @return The current states bytes directly translated into a string of bits
+     */
     public String getBinaryRepresentation() {
         String[] result = new String[currentState.length];
         for (int i = 0; i < currentState.length; i++) {
@@ -266,6 +348,10 @@ class EncoderDecoder {
         return String.join(" ", result);
     }
 
+    /**
+     * Retrieves the Hexadecimal representation of the message
+     * @return The current states bytes directly translated into a string of Hexadecimals
+     */
     public String getHexRepresentation() {
         String[] result = new String[currentState.length];
         for (int i = 0; i < currentState.length; i++) {
@@ -274,15 +360,35 @@ class EncoderDecoder {
         return String.join(" ", result);
     }
 
+    /**
+     * Retrieves the bit at a certain index of a given byte. (Index starts from 0
+     * and counts from left to right)
+     * @param bits - The byte that has the desired information
+     * @param index - The index at which the desired bit is at in the given byte
+     * @return The bit (0 or 1) at the given index in the byte
+     */
     public static int getBit(byte bits, int index) {
         return bits >> (7 - index) & 1;
     }
 
+    /**
+     * Sets the bit at a certain index of a given byte. (Index starts from 0
+     * and counts from left to right)
+     * @param bits - The byte that has the desired information
+     * @param state - The bit value desired to be set
+     * @param index - The index at which the given bit value will be replacing
+     * @return The modified byte
+     */
     public static byte setBit(byte bits, int state, int index) {
         return (byte) (state == 1 ? bits | (1 << (MAX_BIT_INDEX - index)) :
                 bits & ~(1 << (MAX_BIT_INDEX - index)));
     }
 
+    /**
+     * Creates a byte from the given bits
+     * @param states - An array of 8 integers that represents the bits in a byte
+     * @return A byte that represents the bits given
+     */
     public static byte createByte(int[] states) {
         byte result = 0;
         for (int i = 0; i < 8; i++) {
@@ -292,6 +398,12 @@ class EncoderDecoder {
         return result;
     }
 
+    /**
+     * Flips the bit in a given byte at a desired index
+     * @param bits - The byte that will be changed
+     * @param index - The index at which the desired bit will be flipped
+     * @return The modified byte
+     */
     public static byte flipBit(byte bits, int index) {
         return (byte) (bits ^ (1 << (MAX_BIT_INDEX - index)));
     }
